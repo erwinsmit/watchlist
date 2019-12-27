@@ -17,9 +17,6 @@ const typeDefs = gql`
   }
 `;
 
-
-// Resolvers define the technique for fetching the types defined in the
-// schema. This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
     films() {
@@ -44,7 +41,6 @@ const resolvers = {
 
 const server = new ApolloServer({ typeDefs, resolvers });
 
-// The `listen` method launches a web server.
 server.listen({ port: 5000 }).then(({ url }) => {
   console.log(`🚀  Server ready at ${url}`);
 });

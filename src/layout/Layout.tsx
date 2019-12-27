@@ -1,8 +1,18 @@
-import React from 'react';
-import { Link, AppBar, Toolbar, Box, Container } from '@material-ui/core';
+import React, { useContext } from 'react';
+import { Link, AppBar, Toolbar, Box, Container, Button } from '@material-ui/core';
 import { NavLink } from 'react-router-dom';
+import { FirebaseContext } from '../authentication/firebase';
 
 export const Layout: React.FC = ({children}) => {
+  const firebaseContext = useContext(FirebaseContext);
+
+  async function login() {
+    await firebaseContext.firebase?.loginWithGoogle();
+    if (firebaseContext.firebase) {
+      firebaseContext.setUser(firebaseContext.firebase.user);
+    }
+  }
+
   return (
     <Box bgcolor="grey.100">
       <AppBar position="sticky">
@@ -11,10 +21,24 @@ export const Layout: React.FC = ({children}) => {
             Home
           </Link>
           <Box ml={1}>
-          <Link component={NavLink} to="/watchlist" color="inherit"> 
+            <Link component={NavLink} to="/watchlist" color="inherit"> 
               Watchlist
-          </Link>
+            </Link>
           </Box>
+          {!firebaseContext.user &&
+          <Box ml={1}>
+            <Button onClick={login}  color="inherit"> 
+              Login
+            </Button>
+          </Box>
+          }
+
+          {firebaseContext.user &&
+            <Box ml={1}>
+              Welcome {JSON.stringify(firebaseContext.user.displayName)}
+            </Box>
+          }  
+
         </Toolbar>
       </AppBar>   
 
@@ -23,4 +47,5 @@ export const Layout: React.FC = ({children}) => {
       </Container>
     </Box>
   );
+
 };
