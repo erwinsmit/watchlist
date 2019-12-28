@@ -9,14 +9,13 @@
 
 export interface getNewFilms_films {
   title: string;
-  posterPath: string;
+  posterPath: string | null;
   id: string;
 }
 
 export interface getNewFilms {
   films: (getNewFilms_films | null)[] | null;
 }
-
 
 /* tslint:disable */
 // This file was automatically generated and should not be edited.
@@ -27,7 +26,7 @@ export interface getNewFilms {
 
 export interface searchFilms_searchFilms {
   title: string;
-  posterPath: string;
+  posterPath: string | null;
   id: string;
 }
 
@@ -37,6 +36,35 @@ export interface searchFilms {
 
 export interface searchFilmsVariables {
   searchTerm: string;
+}
+
+
+/* tslint:disable */
+// This file was automatically generated and should not be edited.
+
+// ====================================================
+// GraphQL query operation: watchList
+// ====================================================
+
+export interface watchList_watchListItems_movieInfo {
+  id: string;
+  posterPath: string | null;
+  title: string;
+}
+
+export interface watchList_watchListItems {
+  movieId: string;
+  userEmail: string;
+  id: string;
+  movieInfo: watchList_watchListItems_movieInfo | null;
+}
+
+export interface watchList {
+  watchListItems: (watchList_watchListItems | null)[] | null;
+}
+
+export interface watchListVariables {
+  userEmail: string;
 }
 
 /* tslint:disable */

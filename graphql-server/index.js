@@ -1,21 +1,46 @@
 const { ApolloServer, gql } = require('apollo-server');
 const axios = require('axios');
+const firebase = require('firebase');
+const { filter, map } = require('lodash');
+
 require('dotenv').config();
 
 const typeDefs = gql`
   type Film {
     id: String!,
-    posterPath: String!,
+    posterPath: String,
     title: String!
   }
 
+  type WatchListItem {
+    id: String!
+    movieId: String!
+    userEmail: String!
+    movieInfo: Film
+  }
+
   type Query {
-    author: [Author]
-    books: [Book]
     films: [Film]
     searchFilms(searchTerm: String!): [Film]
+    watchListItems(userEmail: String!): [WatchListItem]
   }
 `;
+
+firebase.initializeApp({
+  databaseURL: 'https://watched-films.firebaseio.com/',
+});
+
+const ref = path => firebase.database().ref(path)
+const getValue = path => ref(path).once('value')
+const mapSnapshotToEntities = snapshot => {
+    return map(snapshot.val(), (value, id) => {
+        value.id = id;
+    
+        return value;
+
+    })
+}
+const getEntities = path => getValue(path).then(mapSnapshotToEntities)
 
 const resolvers = {
   Query: {
@@ -35,6 +60,22 @@ const resolvers = {
         films.map(movie => movie.posterPath = "https://image.tmdb.org/t/p/w500" + movie.poster_path)
         return films
       });
+    },
+    watchListItems: async(parentValue, args) => {
+      const watchListItems = await getEntities('watchlist');
+      const filtered = filter(watchListItems, { userEmail: args.userEmail });
+      const enriched = [];
+    
+      for (let filteredItem of filtered) {
+        const film = await axios.get(`https://api.themoviedb.org/3/movie/${filteredItem.movieId}?api_key=${process.env.API}&language=en-US&page=1`);
+        filteredItem.movieInfo = {
+          id: film.data.id,
+          title: film.data.title,
+          posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path
+        }
+      }
+
+      return filtered;
     }
   }
 };

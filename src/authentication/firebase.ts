@@ -4,7 +4,7 @@ import firebase from 'firebase';
 import 'firebase/auth';
 
 export const config = {
-    apiKey: 'AIzaSyB8LGR1HsQj3EXI4DGF4N-tXKD8yIDFhv0',
+    apiKey: process.env.REACT_APP_FIREBASE_KEY,
     authDomain: 'watched-films.firebaseapp.com',
     databaseURL: 'https://watched-films.firebaseio.com',
     projectId: 'watched-films',
