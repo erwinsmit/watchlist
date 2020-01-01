@@ -5,11 +5,10 @@ import { watchList } from '../types/graphql-types';
 import { FirebaseContext } from '../authentication/firebase';
 import { Grid, Card, CardMedia, CardContent, Button, Typography, CardActions } from '@material-ui/core';
 
-const watchListQuery = gql`
-    query watchList($userEmail: String!) {
-        watchListItems(userEmail: $userEmail) {
-            movieId,
-            userEmail,
+export const watchListQuery = gql`
+    query watchList($userId: String!) {
+        watchListItems(userId: $userId) {
+            filmId,
             id,
             movieInfo {
               id,
@@ -24,11 +23,9 @@ export const WatchList: React.FC = () => {
     const firebaseContext = useContext(FirebaseContext);
     const [getWatchListItems, { loading, error, data }] = useLazyQuery<watchList>(watchListQuery);
 
-    // watchList_watchListItems
-
     useEffect(() => {
         if (firebaseContext.user) {
-            getWatchListItems({ variables: { userEmail: firebaseContext.user.email } });
+            getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
         }
     }, [firebaseContext]);
 

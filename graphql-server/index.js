@@ -14,15 +14,18 @@ const typeDefs = gql`
 
   type WatchListItem {
     id: String!
-    movieId: String!
-    userEmail: String!
+    filmId: String!
     movieInfo: Film
   }
 
   type Query {
     films: [Film]
     searchFilms(searchTerm: String!): [Film]
-    watchListItems(userEmail: String!): [WatchListItem]
+    watchListItems(userId: String!): [WatchListItem]
+  }
+
+  type Mutation {
+    addFilmToWatchList(filmId: String!, userId: String!): WatchListItem
   }
 `;
 
@@ -62,21 +65,56 @@ const resolvers = {
       });
     },
     watchListItems: async(parentValue, args) => {
-      const watchListItems = await getEntities('watchlist');
-      const filtered = filter(watchListItems, { userEmail: args.userEmail });
-      const enriched = [];
-    
-      for (let filteredItem of filtered) {
-        const film = await axios.get(`https://api.themoviedb.org/3/movie/${filteredItem.movieId}?api_key=${process.env.API}&language=en-US&page=1`);
-        filteredItem.movieInfo = {
+      const watchListItems = await getEntities(`watchlist/${args.userId}`);
+      
+      for (let watchListItem of watchListItems) {
+        const film = await axios.get(`https://api.themoviedb.org/3/movie/${watchListItem.filmId}?api_key=${process.env.API}&language=en-US&page=1`);
+        watchListItem.movieInfo = {
           id: film.data.id,
           title: film.data.title,
           posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path
         }
       }
 
-      return filtered;
+      return watchListItems;
     }
+  },
+  Mutation: {
+    addFilmToWatchList: async(parentValue, args) => {
+      const film = await axios.get(`https://api.themoviedb.org/3/movie/${args.filmId}?api_key=${process.env.API}&language=en-US&page=1`);  
+      const watchListItems = await getEntities(`watchlist/${args.userId}`);
+      let watchListItemExists; 
+
+      for (let watchListItem of watchListItems) {
+        if (watchListItem.filmId === args.filmId) {
+          watchListItemExists = {
+            ...watchListItem,
+            movieInfo: {
+              id: film.data.id,
+              title: film.data.title,
+              posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path    
+            }
+          }
+        }
+      }
+
+      if (watchListItemExists) {
+        return watchListItemExists;
+      }
+
+      firebase.database().ref(`watchlist/${args.userId}`).push({
+        filmId: args.filmId
+      });
+
+      return {
+        filmId: args.filmId,
+        movieInfo: {
+          id: film.data.id,
+          title: film.data.title,
+          posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path
+        }
+      }
+    },
   }
 };
 

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useLazyQuery } from '@apollo/react-hooks';
+import React, { useState, useEffect, useContext } from 'react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/react-hooks';
 import { gql } from 'apollo-boost';
-import { getNewFilms, searchFilms } from '../types/graphql-types';
 import { Typography, Box, Grid, Card, CardMedia, CardContent, Button, CardActions, TextField, InputAdornment } from '@material-ui/core';
 import Search from '@material-ui/icons/Search';
+import { getNewFilms, searchFilms, addFilm, watchList } from '../types/graphql-types';
+import { FirebaseContext } from '../authentication/firebase';
+import { watchListQuery } from '../watchlist/WatchList';
 
 const newFilmsQuery = gql`
    query getNewFilms {
@@ -25,12 +27,29 @@ const searchFilmsQuery = gql`
     }
 `;
 
+const addToWatchList = gql`
+    mutation addFilm($filmId: String!, $userId: String!) {
+	    addFilmToWatchList(filmId: $filmId, userId: $userId){
+  	    filmId
+	}
+}
+`
+
 export const Home: React.FC = () => {
     const { loading, error, data } = useQuery<getNewFilms>(newFilmsQuery);
-
+    const firebaseContext = useContext(FirebaseContext);
     const [ filmSearchValue, setFilmSearchValue ] = useState('');
 
-    const [searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
+    const [ searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
+    const [ addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm } ] = useMutation<addFilm>(addToWatchList);
+
+    const [getWatchListItems , { refetch }] = useLazyQuery<watchList>(watchListQuery);
+
+    useEffect(() => {
+        if (firebaseContext.user) {
+            getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
+        }
+    }, [firebaseContext]);
     
     const films = filmSearchValue ? searchData?.searchFilms : data?.films;
 
@@ -39,6 +58,23 @@ export const Home: React.FC = () => {
             searchForFilms({ variables: { searchTerm: filmSearchValue } });
         }
     }, [filmSearchValue])
+
+    function handleAddToWatchList(filmId: string) {
+        if (firebaseContext.user) {
+            addFilmToWatchListMutation(
+                { 
+                    variables:  { 
+                        filmId: filmId, 
+                        userId: firebaseContext.user.uid 
+                    },
+                    update(cache) {
+                        // check if I can update cache here directly instead of refetching
+                        refetch();
+                    }
+                }
+            );
+        }
+    }
 
     return (
         <Box paddingY={4}>
@@ -101,7 +137,7 @@ export const Home: React.FC = () => {
                                         <Typography gutterBottom variant="h5">{film.title}</Typography>
                                     </CardContent>
                                     <CardActions>
-                                        <Button size="small" color="primary">
+                                        <Button size="small" color="primary" onClick={() => handleAddToWatchList(film.id)}>
                                         Add to watchlist
                                         </Button>
                                         <Button size="small" color="primary">

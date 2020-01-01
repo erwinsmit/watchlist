@@ -1,5 +1,5 @@
 import React from 'react';
-import app from 'firebase/app';
+import app, { UserInfo } from 'firebase/app';
 import firebase from 'firebase';
 import 'firebase/auth';
 
@@ -16,9 +16,10 @@ export class Firebase {
     private auth: any; // todo: check type
     private provider: any;
     public isAuthenticated: boolean;
-    public user: any;
+    public user: app.User | null;
 
     constructor() {
+        this.user = null;
         app.initializeApp(config);
         this.auth = app.auth();
         this.provider = new firebase.auth.GoogleAuthProvider();
@@ -28,7 +29,7 @@ export class Firebase {
     loginWithGoogle = () => {
         return new Promise<any>((resolve, reject) => {
             this.auth.signInWithPopup(this.provider)
-            .then((result: any) => {
+            .then((result: firebase.auth.UserCredential) => {
                 const user = result.user;
                 this.isAuthenticated = true;
                 this.user = user;
@@ -41,7 +42,7 @@ export class Firebase {
 type ContextModel = {
     firebase?: Firebase;
     setUser: (user: any) => void;
-    user?: any;
+    user?: app.User;
 }
 
 export const FirebaseContext = React.createContext<ContextModel>({

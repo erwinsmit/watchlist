@@ -35,7 +35,7 @@ export const Layout: React.FC = ({children}) => {
 
           {firebaseContext.user &&
             <Box ml={1}>
-              Welcome {JSON.stringify(firebaseContext.user.displayName)}
+              Welcome {firebaseContext.user.displayName} - {firebaseContext.user.uid} 
             </Box>
           }  
 
