@@ -9,147 +9,149 @@ import { watchListQuery } from '../watchlist/WatchList';
 
 const newFilmsQuery = gql`
    query getNewFilms {
-        films {
-            title,
-            posterPath,
-            id
-        }
-    }
+		films {
+			title,
+			posterPath,
+			id
+		}
+	}
 `;
 
 const searchFilmsQuery = gql`
-    query searchFilms($searchTerm: String!) {
-        searchFilms(searchTerm: $searchTerm) {
-            title,
-            posterPath,
-            id
-        }
-    }
+	query searchFilms($searchTerm: String!) {
+		searchFilms(searchTerm: $searchTerm) {
+			title,
+			posterPath,
+			id
+		}
+	}
 `;
 
 const addToWatchList = gql`
-    mutation addFilm($filmId: String!, $userId: String!) {
-	    addFilmToWatchList(filmId: $filmId, userId: $userId){
-  	    filmId
+	mutation addFilm($filmId: String!, $userId: String!) {
+		addFilmToWatchList(filmId: $filmId, userId: $userId){
+  		filmId
 	}
 }
 `
 
 export const Home: React.FC = () => {
-    const { loading, error, data } = useQuery<getNewFilms>(newFilmsQuery);
-    const firebaseContext = useContext(FirebaseContext);
-    const [ filmSearchValue, setFilmSearchValue ] = useState('');
+	const { loading, error, data } = useQuery<getNewFilms>(newFilmsQuery);
+	const firebaseContext = useContext(FirebaseContext);
+	const [filmSearchValue, setFilmSearchValue] = useState('');
 
-    const [ searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
-    const [ addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm } ] = useMutation<addFilm>(addToWatchList);
+	const [searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
+	const [addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm }] = useMutation<addFilm>(addToWatchList);
 
-    const [getWatchListItems , { refetch }] = useLazyQuery<watchList>(watchListQuery);
+	const [getWatchListItems, { refetch }] = useLazyQuery<watchList>(watchListQuery);
 
-    useEffect(() => {
-        if (firebaseContext.user) {
-            getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
-        }
-    }, [firebaseContext]);
-    
-    const films = filmSearchValue ? searchData?.searchFilms : data?.films;
+	useEffect(() => {
+		if (firebaseContext.user) {
+			getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
+		}
+	}, [firebaseContext]);
 
-    useEffect(() => {
-        if (filmSearchValue) {
-            searchForFilms({ variables: { searchTerm: filmSearchValue } });
-        }
-    }, [filmSearchValue])
+	const films = filmSearchValue ? searchData?.searchFilms : data?.films;
 
-    function handleAddToWatchList(filmId: string) {
-        if (firebaseContext.user) {
-            addFilmToWatchListMutation(
-                { 
-                    variables:  { 
-                        filmId: filmId, 
-                        userId: firebaseContext.user.uid 
-                    },
-                    update(cache) {
-                        // check if I can update cache here directly instead of refetching
-                        refetch();
-                    }
-                }
-            );
-        }
-    }
+	useEffect(() => {
+		if (filmSearchValue) {
+			searchForFilms({ variables: { searchTerm: filmSearchValue } });
+		}
+	}, [filmSearchValue])
 
-    return (
-        <Box paddingY={4}>
+	function handleAddToWatchList(filmId: string) {
+		if (firebaseContext.user) {
+			addFilmToWatchListMutation(
+				{
+					variables: {
+						filmId: filmId,
+						userId: firebaseContext.user.uid
+					},
+					update(cache) {
+						// check if I can update cache here directly instead of refetching
+						refetch();
+					}
+				}
+			);
+		}
+	}
 
-            <Box paddingBottom={4}>
-                <form noValidate>
-                    <TextField 
-                        id="film-search" 
-                        label="Search" 
-                        variant="outlined" 
-                        value={filmSearchValue}
-                        onChange={(event) => setFilmSearchValue(event.target.value)}
-                        InputProps={{
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Search />
-                              </InputAdornment>
-                            ),
-                          }}
-                    />
-                </form>
-            </Box>
+	return (
+		<Box paddingY={4}>
 
-            {filmSearchValue ?
-                <Typography variant="h2" gutterBottom>Results for "{filmSearchValue}"</Typography>
-                :
-                <Typography variant="h2" gutterBottom>Trending</Typography>
-            }
+			<Box paddingBottom={4}>
+				<form noValidate>
+					<TextField
+						id="film-search"
+						label="Search"
+						variant="outlined"
+						value={filmSearchValue}
+						onChange={(event) => setFilmSearchValue(event.target.value)}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<Search />
+								</InputAdornment>
+							),
+						}}
+					/>
+				</form>
+			</Box>
 
-            {loading || searchLoading &&
-                <>Loading...</>
-            }
+			{filmSearchValue ?
+				<Typography variant="h2" gutterBottom>Results for "{filmSearchValue}"</Typography>
+				:
+				<Typography variant="h2" gutterBottom>Trending</Typography>
+			}
 
-            {error &&
-                <>{error.message}</>
-            }
-            
-            {searchError &&
-                <>{searchError.message}</>
-            }
+			{loading || searchLoading &&
+				<>Loading...</>
+			}
 
-            {films && 
-                <Grid container spacing={2}>
-                    {films.map((film) => {
-                        if (!film) {
-                            return;
-                        }
-                        
-                        return (
-                            <Grid item xs={3} key={film.id as string}>
-                                <Card>
-                                    {film.posterPath &&
-                                        <CardMedia 
-                                            component="img"
-                                            alt={film.title ? film.title : ''}
-                                            image={film.posterPath}
-                                        />
-                                    }
-                                    <CardContent>
-                                        <Typography gutterBottom variant="h5">{film.title}</Typography>
-                                    </CardContent>
-                                    <CardActions>
-                                        <Button size="small" color="primary" onClick={() => handleAddToWatchList(film.id)}>
-                                        Add to watchlist
-                                        </Button>
-                                        <Button size="small" color="primary">
-                                        Learn More
-                                        </Button>
-                                    </CardActions>
-                                </Card>
-                            </Grid>
-                        )
-                    })}
-                </Grid>
-            }
-        </Box>
-    )
+			{error &&
+				<>{error.message}</>
+			}
+
+			{searchError &&
+				<>{searchError.message}</>
+			}
+
+			{films &&
+				<Grid container spacing={2}>
+					{films.map((film) => {
+						if (!film) {
+							return;
+						}
+
+						return (
+							<Grid item xs={3} key={film.id as string}>
+								<Card>
+									{film.posterPath &&
+										<CardMedia
+											component="img"
+											alt={film.title ? film.title : ''}
+											image={film.posterPath}
+										/>
+									}
+									<CardContent>
+										<Typography gutterBottom variant="h5">{film.title}</Typography>
+									</CardContent>
+									<CardActions>
+										{firebaseContext.user &&
+											<Button size="small" color="primary" onClick={() => handleAddToWatchList(film.id)}>
+												Add to watchlist
+											</Button>
+										}
+										<Button size="small" color="primary">
+											Learn More
+										</Button>
+									</CardActions>
+								</Card>
+							</Grid>
+						)
+					})}
+				</Grid>
+			}
+		</Box>
+	)
 }

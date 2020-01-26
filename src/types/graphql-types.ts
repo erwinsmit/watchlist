@@ -69,7 +69,6 @@ export interface addFilmVariables {
 // ====================================================
 
 export interface watchList_watchListItems_movieInfo {
-  id: string;
   posterPath: string | null;
   title: string;
 }

@@ -11,7 +11,6 @@ export const watchListQuery = gql`
             filmId,
             id,
             movieInfo {
-              id,
               posterPath,
               title
             }
