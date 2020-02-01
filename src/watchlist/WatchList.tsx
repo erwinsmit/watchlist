@@ -6,13 +6,14 @@ import { FirebaseContext } from '../authentication/firebase';
 import { Grid, Card, CardMedia, CardContent, Button, Typography, CardActions } from '@material-ui/core';
 
 export const watchListQuery = gql`
-    query watchList($userId: String!) {
-        watchListItems(userId: $userId) {
-            filmId,
+    query watchList {
+        watchListItems {
             id,
-            movieInfo {
+            filmId,
+            film {
+              title,
               posterPath,
-              title
+              id
             }
         }
     }
@@ -39,7 +40,7 @@ export const WatchList: React.FC = () => {
             {watchListItems && 
                 <Grid container spacing={2}>
                     {watchListItems.map((watchListItem) => {
-                        const film = watchListItem?.movieInfo;
+                        const film = watchListItem?.film;
 
                         if (!film || !watchListItem) {
                             return;

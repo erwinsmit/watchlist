@@ -4,6 +4,15 @@ const axios = require('axios');
 const firebase = require('firebase');
 const { map } = require('lodash');
 
+const admin = require('firebase-admin');
+const serviceAccount = require("../../service-account.json");
+
+const firebaseApp = admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: 'https://watched-films.firebaseio.com/'
+});
+  
+
 require('dotenv').config();
 
 const typeDefs = gql`
@@ -18,7 +27,7 @@ const typeDefs = gql`
   }
 
   type Query {
-    watchListItems(userId: String!): [WatchListItem]
+    watchListItems: [WatchListItem]
   }
 `;
 
@@ -44,8 +53,10 @@ const mapSnapshotToEntities = snapshot => {
 
 const resolvers = {
     Query: {
-        watchListItems: async (parentValue, args) => {
-            const watchListItems = await getEntities(`watchlist/${args.userId}`);
+        watchListItems: async (parentValue, args, context) => {
+            // args.userId
+            console.log('context', JSON.stringify(context));
+            const watchListItems = await getEntities(`watchlist/${context.userId}`)
 
             for (let watchListItem of watchListItems) {
                 const film = await axios.get(`https://api.themoviedb.org/3/movie/${watchListItem.filmId}?api_key=${process.env.API}&language=en-US&page=1`);
@@ -60,9 +71,10 @@ const resolvers = {
         }
     },
     WatchListItem: {
-        async __resolveReference(reference, ...rest) {
-            console.log('watchlist reference', reference, ...rest);
-            const watchListItems = await getEntities(`watchlist/${reference.userId}`);
+        async __resolveReference(reference, context) {
+            console.log('context reference', JSON.stringify(context.userId));
+
+            const watchListItems = await getEntities(`watchlist/${context.userId}`);
             return watchListItems.find(wl => wl.filmId === reference.filmId);
         },
         film(watchListItem) {
@@ -104,7 +116,16 @@ const resolvers = {
 };
 
 const server = new ApolloServer({
-    schema: buildFederatedSchema([{ typeDefs, resolvers }])
+    schema: buildFederatedSchema([{ typeDefs, resolvers }]),
+    context: async({ req }) => {
+        console.log('token', JSON.stringify(req.headers));
+
+        const userId = req.headers.userid;
+    
+        return {
+            userId: userId
+        }
+    }
 })
 
 server.listen({ port: 5002 }).then(({ url }) => {

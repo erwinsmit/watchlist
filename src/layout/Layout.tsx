@@ -18,9 +18,27 @@ export const Layout: React.FC = ({ children }) => {
 	const classes = useStyles();
 
 	async function login() {
+		try {
 		await firebaseContext.firebase?.loginWithGoogle();
-		if (firebaseContext.firebase) {
-			firebaseContext.setUser(firebaseContext.firebase.user);
+			if (!firebaseContext.firebase ) {
+				return;
+			}
+
+			const user = firebaseContext.firebase.user;
+
+			if (user) {
+				firebaseContext.setUser(user);			
+			
+				try {
+					const token = await user.getIdToken();
+					firebaseContext.setToken(token);
+				} catch(e) {
+					console.error(e);
+				}
+			}
+
+		} catch(e) {
+			console.error(e);
 		}
 	}
 
@@ -37,8 +55,8 @@ export const Layout: React.FC = ({ children }) => {
 						</Link>
 					</Box>
 					{!firebaseContext.user &&
-						<IconButton edge="end" color="inherit">
-							<AccountCircle onClick={login} />
+						<IconButton onClick={login} edge="end" color="inherit">
+							<AccountCircle />
 						</IconButton>
 					}
 

@@ -3,7 +3,7 @@ import { useQuery, useLazyQuery, useMutation } from '@apollo/react-hooks';
 import { gql } from 'apollo-boost';
 import { Typography, Box, Grid, Card, CardMedia, CardContent, Button, CardActions, TextField, InputAdornment } from '@material-ui/core';
 import Search from '@material-ui/icons/Search';
-import { getNewFilms, searchFilms, addFilm, watchList } from '../types/graphql-types';
+import { getNewFilms, searchFilms, watchList } from '../types/graphql-types';
 import { FirebaseContext } from '../authentication/firebase';
 import { watchListQuery } from '../watchlist/WatchList';
 
@@ -27,13 +27,13 @@ const searchFilmsQuery = gql`
 	}
 `;
 
-const addToWatchList = gql`
-	mutation addFilm($filmId: String!, $userId: String!) {
-		addFilmToWatchList(filmId: $filmId, userId: $userId){
-  		filmId
-	}
-}
-`
+// const addToWatchList = gql`
+// 	mutation addFilm($filmId: String!, $userId: String!) {
+// 		addFilmToWatchList(filmId: $filmId, userId: $userId){
+//   		filmId
+// 	}
+// }
+// `
 
 export const Home: React.FC = () => {
 	const { loading, error, data } = useQuery<getNewFilms>(newFilmsQuery);
@@ -41,7 +41,7 @@ export const Home: React.FC = () => {
 	const [filmSearchValue, setFilmSearchValue] = useState('');
 
 	const [searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
-	const [addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm }] = useMutation<addFilm>(addToWatchList);
+	// const [addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm }] = useMutation<addFilm>(addToWatchList);
 
 	const [getWatchListItems, { refetch }] = useLazyQuery<watchList>(watchListQuery);
 
@@ -61,18 +61,18 @@ export const Home: React.FC = () => {
 
 	function handleAddToWatchList(filmId: string) {
 		if (firebaseContext.user) {
-			addFilmToWatchListMutation(
-				{
-					variables: {
-						filmId: filmId,
-						userId: firebaseContext.user.uid
-					},
-					update(cache) {
-						// check if I can update cache here directly instead of refetching
-						refetch();
-					}
-				}
-			);
+			// addFilmToWatchListMutation(
+			// 	{
+			// 		variables: {
+			// 			filmId: filmId,
+			// 			userId: firebaseContext.user.uid
+			// 		},
+			// 		update(cache) {
+			// 			// check if I can update cache here directly instead of refetching
+			// 			refetch();
+			// 		}
+			// 	}
+			// );
 		}
 	}
 

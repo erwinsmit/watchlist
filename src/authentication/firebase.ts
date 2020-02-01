@@ -29,10 +29,15 @@ export class Firebase {
     loginWithGoogle = () => {
         return new Promise<any>((resolve, reject) => {
             this.auth.signInWithPopup(this.provider)
-            .then((result: firebase.auth.UserCredential) => {
+            .then(async (result: firebase.auth.UserCredential) => {
                 const user = result.user;
                 this.isAuthenticated = true;
                 this.user = user;
+                const token = await user?.getIdToken();
+                if (token) {
+                    window.localStorage.setItem('token', token);
+                }
+
                 resolve();
             });
         });  
@@ -42,9 +47,12 @@ export class Firebase {
 type ContextModel = {
     firebase?: Firebase;
     setUser: (user: any) => void;
+    setToken: (string: string) => void;
+    token?: string;
     user?: app.User;
 }
 
 export const FirebaseContext = React.createContext<ContextModel>({
-    setUser: () => {}
+    setUser: () => {},
+    setToken: () => null,
 });

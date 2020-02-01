@@ -11,7 +11,7 @@ const typeDefs = gql`
     id: ID!
     posterPath: String
     title: String!
-    watchListItem(userId: String!): WatchListItem @provides(fields: "filmId")
+    watchListItem: WatchListItem @provides(fields: "filmId")
   }
 
   extend type WatchListItem @key(fields: "filmId") {
@@ -64,7 +64,16 @@ const resolvers = {
 
 // const server = new ApolloServer({ typeDefs, resolvers });
 const server = new ApolloServer({
-  schema: buildFederatedSchema([{ typeDefs, resolvers }])
+  schema: buildFederatedSchema([{ typeDefs, resolvers }]),
+  context: async({ req }) => {
+      console.log('token', JSON.stringify(req.headers.userid));
+
+      const userId = req.headers.userid;
+  
+      return {
+          userId: userId
+      }
+  }
 })
 
 server.listen({ port: 5003 }).then(({ url }) => {
