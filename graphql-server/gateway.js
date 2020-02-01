@@ -34,7 +34,6 @@ const server = new ApolloServer({
    
     try {
       const user = await firebaseApp.auth().verifyIdToken(token);
-      // console.log('user', user.user_id)     
       return {
         userId: user.user_id
       }

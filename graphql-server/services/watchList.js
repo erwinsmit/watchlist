@@ -11,7 +11,7 @@ const firebaseApp = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://watched-films.firebaseio.com/'
 });
-  
+
 
 require('dotenv').config();
 
@@ -29,11 +29,12 @@ const typeDefs = gql`
   type Query {
     watchListItems: [WatchListItem]
   }
-`;
 
-// type Mutation {
-//     addFilmToWatchList(id: String!, userId: String!): WatchListItem
-// }
+  type Mutation {
+    addFilmToWatchList(filmId: String!): WatchListItem
+    removeFilmFromWatchList(filmId: String!): WatchListItem
+  }  
+`;
 
 firebase.initializeApp({
     databaseURL: 'https://watched-films.firebaseio.com/',
@@ -45,7 +46,7 @@ const getEntities = path => getValue(path).then(mapSnapshotToEntities);
 const mapSnapshotToEntities = snapshot => {
     return map(snapshot.val(), (value, id) => {
         value.id = id;
-    
+
         return value;
 
     })
@@ -54,8 +55,6 @@ const mapSnapshotToEntities = snapshot => {
 const resolvers = {
     Query: {
         watchListItems: async (parentValue, args, context) => {
-            // args.userId
-            console.log('context', JSON.stringify(context));
             const watchListItems = await getEntities(`watchlist/${context.userId}`)
 
             for (let watchListItem of watchListItems) {
@@ -72,8 +71,6 @@ const resolvers = {
     },
     WatchListItem: {
         async __resolveReference(reference, context) {
-            console.log('context reference', JSON.stringify(context.userId));
-
             const watchListItems = await getEntities(`watchlist/${context.userId}`);
             return watchListItems.find(wl => wl.filmId === reference.filmId);
         },
@@ -81,47 +78,47 @@ const resolvers = {
             return { __typename: "Film", id: watchListItem.filmId };
         }
     },
-        //   },
-        //   Mutation: {
-        // addFilmToWatchList: async (parentValue, args) => {
-        //     const watchListItems = await getEntities(`watchlist/${args.userId}`);
-        //     let watchListItemExists;
+    Mutation: {
+        addFilmToWatchList: async (parentValue, args, context) => {
+            const watchListItems = await getEntities(`watchlist/${context.userId}`);
+            let watchListItemExists;
 
-        //     for (let watchListItem of watchListItems) {
-        //         if (watchListItem.filmId === args.filmId) {
-        //             watchListItemExists = {
-        //                 ...watchListItem,
-        //                 movieInfo: {
-        //                     id: film.data.id,
-        //                     title: film.data.title,
-        //                     posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path
-        //                 }
-        //             }
-        //         }
-        //     }
+            for (let watchListItem of watchListItems) {
+                if (watchListItem.filmId === args.filmId) {
+                    watchListItemExists = watchListItem;
+                }
+            }
 
-        //     if (watchListItemExists) {
-        //         return watchListItemExists;
-        //     }
+            if (watchListItemExists) {
+                return watchListItemExists;
+            }
 
-        //     firebase.database().ref(`watchlist/${args.userId}`).push({
-        //         filmId: args.filmId
-        //     });
+            firebase.database().ref(`watchlist/${context.userId}`).push({
+                filmId: args.filmId
+            });
 
-        //     return {
-        //         filmId: args.filmId
-        //     }
-        // },
-    // }
+            return {
+                filmId: args.filmId
+            }
+        },
+        removeFilmFromWatchList: async(parentValue, args, context) => {
+            const watchListItems = await getEntities(`watchlist/${context.userId}`);
+            const ref = firebase.database().ref(`watchlist/${context.userId}`);
+
+            for (let watchListItem of watchListItems) {
+                if (watchListItem.filmId === args.filmId) {
+                    await ref.child(watchListItem.id).remove();
+                }
+            }
+        }
+    }
 };
 
 const server = new ApolloServer({
     schema: buildFederatedSchema([{ typeDefs, resolvers }]),
-    context: async({ req }) => {
-        console.log('token', JSON.stringify(req.headers));
-
+    context: async ({ req }) => {
         const userId = req.headers.userid;
-    
+
         return {
             userId: userId
         }

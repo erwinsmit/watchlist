@@ -1,7 +1,7 @@
 import React, { useContext, useEffect } from 'react';
-import { useLazyQuery } from '@apollo/react-hooks';
+import { useLazyQuery, useMutation } from '@apollo/react-hooks';
 import { gql } from 'apollo-boost';
-import { watchList } from '../types/graphql-types';
+import { watchList, removeFilm } from '../types/graphql-types';
 import { FirebaseContext } from '../authentication/firebase';
 import { Grid, Card, CardMedia, CardContent, Button, Typography, CardActions } from '@material-ui/core';
 
@@ -19,10 +19,21 @@ export const watchListQuery = gql`
     }
 `;
 
+
+const removeFromWatchList = gql`
+	mutation removeFilm($filmId: String!) {
+		removeFilmFromWatchList(filmId: $filmId){
+  		filmId
+	}
+}
+`;
+
 export const WatchList: React.FC = () => {
     const firebaseContext = useContext(FirebaseContext);
-    const [getWatchListItems, { loading, error, data }] = useLazyQuery<watchList>(watchListQuery);
+    const [getWatchListItems, { loading, error, data, refetch }] = useLazyQuery<watchList>(watchListQuery);
 
+    const [removeFilmFromWatchListMutation, { loading: removeFilmLoading, error: removeFilmError }] = useMutation<removeFilm>(removeFromWatchList);
+    
     useEffect(() => {
         if (firebaseContext.user) {
             getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
@@ -31,10 +42,32 @@ export const WatchList: React.FC = () => {
 
     const watchListItems = data?.watchListItems;
 
+    function handleRemove(filmId: string) {
+		if (firebaseContext.user) {
+			removeFilmFromWatchListMutation(
+				{
+					variables: {
+						filmId: filmId
+					},
+					update(cache) {
+                        refetch();
+						// check if I can update cache here directly instead of refetching
+						
+					}
+				}
+			);
+		}
+	}
+
+
     return (
         <div>
             {firebaseContext && firebaseContext.user &&
                 firebaseContext.user.displayName
+            }
+
+            {loading &&
+                <>Loading...</>
             }
 
             {watchListItems && 
@@ -60,7 +93,7 @@ export const WatchList: React.FC = () => {
                                         <Typography gutterBottom variant="h5">{film.title}</Typography>
                                     </CardContent>
                                     <CardActions>
-                                        <Button size="small" color="primary">
+                                        <Button size="small" color="primary" onClick={() => handleRemove(film.id)}>
                                             Remove
                                         </Button>
                                         <Button size="small" color="primary">
