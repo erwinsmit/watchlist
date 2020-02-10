@@ -36,7 +36,7 @@ export const WatchList: React.FC = () => {
     
     useEffect(() => {
         if (firebaseContext.user) {
-            getWatchListItems({ variables: { userId: firebaseContext.user.uid } });
+            getWatchListItems();
         }
     }, [firebaseContext]);
 

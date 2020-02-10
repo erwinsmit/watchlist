@@ -1,17 +1,7 @@
 const { ApolloServer, gql } = require('apollo-server');
 const { buildFederatedSchema } = require('@apollo/federation');
-const axios = require('axios');
-const firebase = require('firebase');
 const { map } = require('lodash');
-
-const admin = require('firebase-admin');
-const serviceAccount = require("../../service-account.json");
-
-const firebaseApp = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://watched-films.firebaseio.com/'
-});
-
+const { WatchListApi } = require('./watchList/datasource');
 
 require('dotenv').config();
 
@@ -36,43 +26,15 @@ const typeDefs = gql`
   }  
 `;
 
-firebase.initializeApp({
-    databaseURL: 'https://watched-films.firebaseio.com/',
-});
-
-const ref = path => firebase.database().ref(path);
-const getValue = path => ref(path).once('value');
-const getEntities = path => getValue(path).then(mapSnapshotToEntities);
-const mapSnapshotToEntities = snapshot => {
-    return map(snapshot.val(), (value, id) => {
-        value.id = id;
-
-        return value;
-
-    })
-}
-
 const resolvers = {
     Query: {
-        watchListItems: async (parentValue, args, context) => {
-            const watchListItems = await getEntities(`watchlist/${context.userId}`)
-
-            for (let watchListItem of watchListItems) {
-                const film = await axios.get(`https://api.themoviedb.org/3/movie/${watchListItem.filmId}?api_key=${process.env.API}&language=en-US&page=1`);
-                watchListItem.movieInfo = {
-                    id: film.data.id,
-                    title: film.data.title,
-                    posterPath: "https://image.tmdb.org/t/p/w500" + film.data.poster_path
-                }
-            }
-
-            return watchListItems;
+        watchListItems: async (parentValue, args, { dataSources, userId }) => {
+            return dataSources.watchListApi.getWatchListItems(userId);
         }
     },
     WatchListItem: {
-        async __resolveReference(reference, context) {
-            const watchListItems = await getEntities(`watchlist/${context.userId}`);
-            return watchListItems.find(wl => wl.filmId === reference.filmId);
+        async __resolveReference({filmId}, context) {
+            return context.dataSources.watchListApi.getWatchListItemByFilmId(context.userId, filmId);
         },
         film(watchListItem) {
             return { __typename: "Film", id: watchListItem.filmId };
@@ -80,45 +42,24 @@ const resolvers = {
     },
     Mutation: {
         addFilmToWatchList: async (parentValue, args, context) => {
-            const watchListItems = await getEntities(`watchlist/${context.userId}`);
-            let watchListItemExists;
-
-            for (let watchListItem of watchListItems) {
-                if (watchListItem.filmId === args.filmId) {
-                    watchListItemExists = watchListItem;
-                }
-            }
-
-            if (watchListItemExists) {
-                return watchListItemExists;
-            }
-
-            firebase.database().ref(`watchlist/${context.userId}`).push({
-                filmId: args.filmId
-            });
-
-            return {
-                filmId: args.filmId
-            }
+            return context.dataSources.watchListApi.addFilmToWatchList(context.userId, args.filmId);
         },
         removeFilmFromWatchList: async(parentValue, args, context) => {
-            const watchListItems = await getEntities(`watchlist/${context.userId}`);
-            const ref = firebase.database().ref(`watchlist/${context.userId}`);
-
-            for (let watchListItem of watchListItems) {
-                if (watchListItem.filmId === args.filmId) {
-                    await ref.child(watchListItem.id).remove();
-                }
-            }
+            return context.dataSources.watchListApi.removeFilmFromWatchList(context.userId, args.filmId);
         }
     }
 };
 
 const server = new ApolloServer({
+    dataSources: () => {
+        return {
+            watchListApi: new WatchListApi(),
+        };
+    },
     schema: buildFederatedSchema([{ typeDefs, resolvers }]),
     context: async ({ req }) => {
         const userId = req.headers.userid;
-
+    
         return {
             userId: userId
         }

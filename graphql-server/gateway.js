@@ -10,7 +10,6 @@ const firebaseApp = admin.initializeApp({
 
 class AuthenticatedDataSource extends RemoteGraphQLDataSource {
   willSendRequest({ request, context }) {
-    console.log('willSendRequest', JSON.stringify(request.query), context.userId);
     if (context.userId) {
       request.http.headers.set('userid', context.userId);
     }
@@ -31,7 +30,6 @@ const server = new ApolloServer({
   gateway,
   context: async({ req, context }) => {
     const token = req.headers.authorization || "";
-   
     try {
       const user = await firebaseApp.auth().verifyIdToken(token);
       return {
