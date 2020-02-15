@@ -16,7 +16,7 @@ class FilmsApi extends RESTDataSource {
     }
 
     async getFilmsBySearchTerm(searchTerm) {
-        return this.get(`${this.baseUrl}search/movie?query=${searchTerm}&page=1'`).then((response => this.setPosterPaths(response.data)));
+        return this.get(`${this.baseUrl}search/movie?query=${searchTerm}&page=1'`).then((response => this.setPosterPaths(response.results)));
     }
 
     async getFilmById(id) {
@@ -24,7 +24,10 @@ class FilmsApi extends RESTDataSource {
     }
 
     setPosterPaths(films) {
-        films.map(film => film.posterPath = "https://image.tmdb.org/t/p/w500" + film.poster_path)
+
+        if (films) {
+            films.map(film => film.posterPath = "https://image.tmdb.org/t/p/w500" + film.poster_path)
+        }
         return films;
     }
 }

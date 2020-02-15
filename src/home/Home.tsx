@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/react-hooks';
+import { debounce } from 'lodash';
 import { gql } from 'apollo-boost';
 import { Typography, Box, Grid, Card, CardMedia, CardContent, Button, CardActions, TextField, InputAdornment } from '@material-ui/core';
 import Search from '@material-ui/icons/Search';
-import { getNewFilms, searchFilms, watchList, addFilm } from '../types/graphql-types';
+import { getNewFilms, searchFilms, addFilm } from '../types/graphql-types';
 import { FirebaseContext } from '../authentication/firebase';
-import { watchListQuery } from '../watchlist/WatchList';
 
 const newFilmsQuery = gql`
    query getNewFilms {
@@ -45,27 +45,28 @@ const addToWatchList = gql`
 
 
 export const Home: React.FC = () => {
-	const { loading, error, data, refetch: refetchNewFilms  } = useQuery<getNewFilms>(newFilmsQuery);
+	const { loading, error, data, refetch } = useQuery<getNewFilms>(newFilmsQuery);
 	const firebaseContext = useContext(FirebaseContext);
 	const [filmSearchValue, setFilmSearchValue] = useState('');
 
 	const [searchForFilms, { loading: searchLoading, error: searchError, data: searchData }] = useLazyQuery<searchFilms>(searchFilmsQuery);
-	const [addFilmToWatchListMutation, { loading: addedFilmLoading, error: addedFilmError, data: addedFilm }] = useMutation<addFilm>(addToWatchList);
+	const [addFilmToWatchListMutation] = useMutation<addFilm>(addToWatchList);
 
-	const [getWatchListItems, { refetch }] = useLazyQuery<watchList>(watchListQuery);
+	const searchDebounced = useCallback(debounce((term: any) => {
+		searchForFilms({ variables: { searchTerm: term } });
+	}, 500, { trailing: true, leading: false }), []);
 
 	useEffect(() => {
 		if (firebaseContext.user) {
-			console.log('refertch');
-			refetchNewFilms();		
+			refetch();
 		}
 	}, [firebaseContext]);
-
+	
 	const films = filmSearchValue ? searchData?.searchFilms : data?.films;
 
 	useEffect(() => {
 		if (filmSearchValue) {
-			searchForFilms({ variables: { searchTerm: filmSearchValue } });
+			searchDebounced(filmSearchValue);
 		}
 	}, [filmSearchValue])
 
@@ -78,7 +79,6 @@ export const Home: React.FC = () => {
 					},
 					update(cache) {
 						// check if I can update cache here directly instead of refetching
-						refetchNewFilms();
 						refetch();
 					}
 				}
@@ -88,7 +88,6 @@ export const Home: React.FC = () => {
 
 	return (
 		<Box paddingY={4}>
-
 			<Box paddingBottom={4}>
 				<form noValidate>
 					<TextField

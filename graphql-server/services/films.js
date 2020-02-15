@@ -39,13 +39,9 @@ const resolvers = {
     watchListItem(film, args) {
       return { __typename: "WatchListItem", filmId: film.id, userId: args.userId };
     },
-    // film(watchListItem, ...rest) {
-    //   return { __typename: "Film", id: watchListItem.filmId };
-    // }
   }
 };
 
-// const server = new ApolloServer({ typeDefs, resolvers });
 const server = new ApolloServer({
   dataSources: () => {
     return {
