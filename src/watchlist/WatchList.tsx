@@ -49,10 +49,18 @@ export const WatchList: React.FC = () => {
 					variables: {
 						filmId: filmId
 					},
-					update(cache) {
-                        refetch();
-						// check if I can update cache here directly instead of refetching
-						
+					update(cache, {data}) {
+                        const cachedWatchlistItems = cache.readQuery<watchList>({query: watchListQuery});
+                        if (cachedWatchlistItems?.watchListItems) {
+
+                            cachedWatchlistItems.watchListItems = cachedWatchlistItems.watchListItems.filter(wl => wl && wl.filmId !== filmId);
+                        }
+
+                        cache.writeQuery({
+                            query: watchListQuery,
+                            data: { watchListItems: cachedWatchlistItems?.watchListItems },
+                        });
+                		
 					}
 				}
 			);

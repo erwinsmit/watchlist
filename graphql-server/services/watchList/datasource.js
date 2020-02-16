@@ -1,6 +1,6 @@
 const { RESTDataSource } = require('apollo-datasource-rest');
 const firebase = require('firebase');
-const { map, find } = require('lodash');
+const { map } = require('lodash');
 
 if (!firebase.apps.length) {
     firebase.initializeApp({

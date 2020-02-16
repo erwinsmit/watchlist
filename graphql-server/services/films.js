@@ -52,13 +52,7 @@ const server = new ApolloServer({
     typeDefs, 
     resolvers
   }]),
-  context: async ({ req }) => {
-    const userId = req.headers.userid;
-
-    return {
-      userId: userId
-    }
-  }
+  tracing: true
 })
 
 server.listen({ port: 5003 }).then(({ url }) => {

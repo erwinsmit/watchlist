@@ -1,6 +1,5 @@
-const { ApolloServer, gql } = require('apollo-server');
+const { ApolloServer, gql, AuthenticationError } = require('apollo-server');
 const { buildFederatedSchema } = require('@apollo/federation');
-const { map } = require('lodash');
 const { WatchListApi } = require('./watchList/datasource');
 
 require('dotenv').config();
@@ -29,11 +28,19 @@ const typeDefs = gql`
 const resolvers = {
     Query: {
         watchListItems: async (parentValue, args, { dataSources, userId }) => {
+            if (!userId) {
+                throw new AuthenticationError('User not authenticated');
+            }
+
             return dataSources.watchListApi.getWatchListItems(userId);
         }
     },
     WatchListItem: {
         async __resolveReference({filmId}, context) {
+            if (!context.userId) {
+                return null;
+            }
+            
             return context.dataSources.watchListApi.getWatchListItemByFilmId(context.userId, filmId);
         },
         film(watchListItem) {
@@ -42,6 +49,10 @@ const resolvers = {
     },
     Mutation: {
         addFilmToWatchList: async (parentValue, args, context) => {
+            if (!context.userId) {
+                throw new AuthenticationError('User not authenticated');
+            }
+
             return context.dataSources.watchListApi.addFilmToWatchList(context.userId, args.filmId);
         },
         removeFilmFromWatchList: async(parentValue, args, context) => {
@@ -63,7 +74,8 @@ const server = new ApolloServer({
         return {
             userId: userId
         }
-    }
+    },
+    tracing: true
 })
 
 server.listen({ port: 5002 }).then(({ url }) => {
