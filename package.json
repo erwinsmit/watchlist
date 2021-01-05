@@ -22,7 +22,7 @@
     "apollo-link-context": "^1.0.19",
     "apollo-server": "^2.9.14",
     "apollo-server-cache-memcached": "^0.6.4",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "concurrently": "^5.0.2",
     "firebase": "^7.6.1",
     "firebase-admin": "^8.9.2",
